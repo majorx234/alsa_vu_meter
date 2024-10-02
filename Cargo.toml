@@ -1,0 +1,16 @@
+[package]
+name = "alsa_vu_meter"
+version = "0.1.0"
+authors = ["MajorX234 <majorx234@googlemail.com>"]
+edition = "2021"
+
+[lib]
+name = "alsa_vu_meter_lib"
+path = "src/lib.rs"
+
+[[bin]]
+name = "alsa_vu_meter"
+path = "src/alsa_vu_meter/bin/main.rs"
+
+[dependencies]
+alsa = { version = "0.9.1"}

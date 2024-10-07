@@ -12,5 +12,13 @@ path = "src/lib.rs"
 name = "alsa_vu_meter"
 path = "src/alsa_vu_meter/bin/main.rs"
 
+[[bin]]
+name = "ratatui_test"
+path = "src/ratatui_test/bin/main.rs"
+
 [dependencies]
 alsa = { version = "0.9.1"}
+ratatui = { version = "0.23.0", features = ["all-widgets"]}
+color-eyre = "0.6.3"
+rand = "0.8.5"
+crossterm = "0.28.1"

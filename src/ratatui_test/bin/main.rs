@@ -58,9 +58,11 @@ fn run(mut terminal: Terminal<CrosstermBackend<Stdout>>) -> Result<()> {
                 frame.render_widget(barchart, area);
             }
         })?;
-        if let event::Event::Key(key) = event::read()? {
-            if key.kind == KeyEventKind::Press && key.code == KeyCode::Char('q') {
-                return Ok(());
+        if event::poll(std::time::Duration::from_millis(16))? {
+            if let event::Event::Key(key) = event::read()? {
+                if key.kind == KeyEventKind::Press && key.code == KeyCode::Char('q') {
+                    break;
+                }
             }
         }
     }

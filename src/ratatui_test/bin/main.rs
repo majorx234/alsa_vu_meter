@@ -11,7 +11,7 @@ use crossterm::{
 };
 use ratatui::{
     self,
-    layout::{Constraint, Layout, Rect},
+    layout::{Constraint, Direction, Layout, Rect},
     prelude::{Backend, CrosstermBackend, Stylize, Terminal, TerminalOptions},
     text::Line,
     widgets::{Bar, BarChart, BarGroup, Block},
@@ -49,8 +49,15 @@ fn run(mut terminal: Terminal<impl Backend>) -> Result<()> {
     ];
     loop {
         terminal.draw(|frame| {
+            let mut used_y: u16 = 0;
             for i in 0..number_of_devices {
-                let area = Rect::new(0, i as u16, frame.size().width, 1);
+                let area = Rect::new(
+                    0,
+                    used_y,
+                    frame.size().width,
+                    channel_values.len().try_into().unwrap(),
+                );
+                used_y += <usize as TryInto<u16>>::try_into(channel_values.len()).unwrap();
                 let bars: Vec<Bar> = channel_values
                     .iter()
                     .enumerate()
@@ -64,7 +71,9 @@ fn run(mut terminal: Terminal<impl Backend>) -> Result<()> {
                 let barchart = BarChart::default()
                     .data(BarGroup::default().bars(&bars))
                     .block(Block::new().title(format!("{title}")))
-                    .bar_width(5);
+                    .bar_width(1)
+                    .bar_gap(0)
+                    .direction(Direction::Horizontal);
                 frame.render_widget(barchart, area);
             }
         })?;

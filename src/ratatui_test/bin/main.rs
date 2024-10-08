@@ -22,6 +22,7 @@ fn main() -> Result<()> {
     // TODO retrive real infos from ALSA
     stdout().execute(EnterAlternateScreen)?;
     enable_raw_mode()?;
+    initialize_panic_handler();
     color_eyre::install()?;
     let terminal = Terminal::new(CrosstermBackend::new(stdout()))?;
     let app_result = run(terminal);
@@ -67,4 +68,17 @@ fn run(mut terminal: Terminal<CrosstermBackend<Stdout>>) -> Result<()> {
         }
     }
     Ok(())
+}
+
+// Panic hook
+pub fn initialize_panic_handler() {
+    use better_panic::Settings;
+    std::panic::set_hook(Box::new(|panic_info| {
+        crossterm::execute!(std::io::stderr(), crossterm::terminal::LeaveAlternateScreen).unwrap();
+        crossterm::terminal::disable_raw_mode().unwrap();
+        Settings::auto()
+            .most_recent_first(false)
+            .lineno_suffix(true)
+            .create_panic_handler()(panic_info);
+    }));
 }

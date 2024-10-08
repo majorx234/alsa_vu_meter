@@ -1,6 +1,6 @@
 use std::{
     env::args,
-    io::{stdout, Stdout},
+    io::{self, stdout, Stdout},
 };
 
 use color_eyre::Result;
@@ -12,7 +12,7 @@ use crossterm::{
 use ratatui::{
     self,
     layout::{Constraint, Layout, Rect},
-    prelude::{CrosstermBackend, Stylize, Terminal, TerminalOptions},
+    prelude::{Backend, CrosstermBackend, Stylize, Terminal, TerminalOptions},
     text::Line,
     widgets::{Bar, BarChart, BarGroup, Block},
     Viewport,
@@ -20,18 +20,27 @@ use ratatui::{
 
 fn main() -> Result<()> {
     // TODO retrive real infos from ALSA
-    stdout().execute(EnterAlternateScreen)?;
-    enable_raw_mode()?;
     initialize_panic_handler();
     color_eyre::install()?;
-    let terminal = Terminal::new(CrosstermBackend::new(stdout()))?;
+    let terminal = init_tui()?;
     let app_result = run(terminal);
+    restore_tui()?;
+    Ok(())
+}
+
+pub fn init_tui() -> io::Result<Terminal<impl Backend>> {
+    stdout().execute(EnterAlternateScreen)?;
+    enable_raw_mode()?;
+    Terminal::new(CrosstermBackend::new(stdout()))
+}
+
+pub fn restore_tui() -> io::Result<()> {
     stdout().execute(LeaveAlternateScreen)?;
     disable_raw_mode()?;
     Ok(())
 }
 
-fn run(mut terminal: Terminal<CrosstermBackend<Stdout>>) -> Result<()> {
+fn run(mut terminal: Terminal<impl Backend>) -> Result<()> {
     let titles = ["card0", "card1"];
     let number_of_devices = 2;
     let number_of_channels: usize = 10;

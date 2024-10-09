@@ -78,9 +78,15 @@ fn run(mut terminal: Terminal<impl Backend>) -> Result<()> {
             }
         })?;
         if event::poll(std::time::Duration::from_millis(16))? {
-            if let event::Event::Key(key) = event::read()? {
-                if key.kind == KeyEventKind::Press && key.code == KeyCode::Char('q') {
-                    break;
+            let event = event::read()?;
+            match event {
+                event::Event::Key(key) => {
+                    if key.kind == KeyEventKind::Press && key.code == KeyCode::Char('q') {
+                        break;
+                    }
+                }
+                _ => {
+                    println!("unknown event");
                 }
             }
         }

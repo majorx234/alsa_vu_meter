@@ -1,13 +1,17 @@
-use std::os::raw::c_int;
-use std::thread::sleep;
-use std::time::Duration;
-
+mod frontend;
+use crate::frontend::create_gui_thread;
 use alsa::card::Card;
 use alsa::card::Iter;
 use alsa::ctl::DeviceIter;
 use alsa::ctl::{CardInfo, Ctl};
 use alsa::pcm::{Access, Format, HwParams, PCM};
 use alsa::{Direction, Error, ValueOr};
+use frontend::ConsumerRbf32;
+use frontend::ProducerRbf32;
+use ringbuf::HeapRb;
+use std::os::raw::c_int;
+use std::thread::sleep;
+use std::time::Duration;
 
 // Calculates RMS (root mean square) as a way to determine volume
 fn rms(buf: &[i16]) -> f64 {
@@ -23,13 +27,18 @@ fn rms(buf: &[i16]) -> f64 {
     20.0 * (r / (i16::MAX as f64)).log10()
 }
 
-fn read_loop(pcm: &PCM) -> Result<(), Error> {
+fn read_loop(
+    pcm: &PCM,
+    mut ringbuffer_left_in: ProducerRbf32,
+    mut ringbuffer_right_in: ProducerRbf32,
+) -> Result<(), Error> {
     let io = pcm.io_i16()?;
     let mut buf = [0i16; 8192];
     loop {
         // Block while waiting for 8192 samples to be read from the device.
         assert_eq!(io.readi(&mut buf)?, buf.len());
         let r = rms(&buf);
+        // Todo put data in Ringbuffer
         println!("RMS: {:.1} dB", r);
     }
 }
@@ -89,6 +98,12 @@ fn start_capture(pcm_device_name: &str) -> Result<PCM, Error> {
 }
 
 fn main() -> Result<(), Error> {
+    let ringbuffer_left = HeapRb::<f32>::new(96000);
+    let ringbuffer_right = HeapRb::<f32>::new(96000);
+
+    let (ringbuffer_left_in, ringbuffer_left_out) = ringbuffer_left.split();
+    let (ringbuffer_right_in, ringbuffer_right_out) = ringbuffer_right.split();
+
     let cards = Iter::new();
     let mut cards_stuff = Vec::new();
     cards.for_each(|card| {
@@ -103,17 +118,17 @@ fn main() -> Result<(), Error> {
         // TODO: need to choose capturing device, "default" just for testing
         let capture = start_capture("default").unwrap();
 
-        read_loop(&capture).unwrap();
+        read_loop(&capture, ringbuffer_left_in, ringbuffer_right_in).unwrap();
     });
 
     let run = true;
 
+    let tui_thread = create_gui_thread(ringbuffer_left_out, ringbuffer_right_out);
     while run {
-        // TODO: run TUI here and show bar
-        println!("test\n");
         let sleep_time = Duration::from_millis(500);
         sleep(sleep_time);
     }
+
     let _ = capture_thread.join();
     Ok(())
 }

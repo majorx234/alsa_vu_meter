@@ -89,14 +89,19 @@ fn read_loop(
     }
 }
 
-fn start_capture(pcm_device_name: &str) -> Result<PCM, Error> {
+fn start_capture(
+    pcm_device_name: &str,
+    channel: u32,
+    bit_rate: u32,
+    format: Format,
+) -> Result<PCM, Error> {
     let pcm = PCM::new(pcm_device_name, Direction::Capture, false)?;
     {
         // For this example, we assume 44100Hz, one channel, 16 bit audio.
         let hwp = HwParams::any(&pcm)?;
-        hwp.set_channels(1)?;
-        hwp.set_rate(44100, ValueOr::Nearest)?;
-        hwp.set_format(Format::s16())?;
+        hwp.set_channels(channel)?;
+        hwp.set_rate(bit_rate, ValueOr::Nearest)?;
+        hwp.set_format(format)?;
         hwp.set_access(Access::RWInterleaved)?;
         pcm.hw_params(&hwp)?;
     }
@@ -105,12 +110,15 @@ fn start_capture(pcm_device_name: &str) -> Result<PCM, Error> {
 }
 
 pub fn create_capture_thread(
-    mut ringbuffer_left_in: ProducerRbf32,
-    mut ringbuffer_right_in: ProducerRbf32,
+    ringbuffer_left_in: ProducerRbf32,
+    ringbuffer_right_in: ProducerRbf32,
 ) -> std::thread::JoinHandle<()> {
     std::thread::spawn(|| {
         // TODO: need to choose capturing device, "default" just for testing
-        let capture = start_capture("default").unwrap();
+        let channel = 2;
+        let bit_rate = 48000;
+        let format = Format::s16();
+        let capture = start_capture("default", channel, bit_rate, format).unwrap();
 
         read_loop(&capture, ringbuffer_left_in, ringbuffer_right_in).unwrap();
     })

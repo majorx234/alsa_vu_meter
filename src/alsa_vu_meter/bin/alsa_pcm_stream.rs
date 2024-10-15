@@ -4,6 +4,7 @@ use alsa::ctl::DeviceIter;
 use alsa::ctl::{CardInfo, Ctl};
 use alsa::pcm::{Access, Format, HwParams, PCM};
 use alsa::{Direction, Error, ValueOr};
+use itertools::Itertools;
 use std::os::raw::c_int;
 
 use crate::frontend::ProducerRbf32;
@@ -60,17 +61,25 @@ pub fn get_alsa_cards() -> Vec<Vec<CardStuff>> {
 }
 
 // Calculates RMS (root mean square) as a way to determine volume
-fn rms(buf: &[i16]) -> f64 {
+fn rms(buf: &[i16], channels: u32) -> (f64, f64) {
+    assert_eq!(channels, 2);
     if buf.len() == 0 {
-        return 0f64;
+        return (0f64, 0f64);
     }
-    let mut sum = 0f64;
-    for &x in buf {
-        sum += (x as f64) * (x as f64);
+    let mut sum_left = 0f64;
+    let mut sum_right = 0f64;
+    for (&x, &y) in buf.iter().tuples() {
+        sum_left += (x as f64) * (x as f64);
+        sum_right += (y as f64) * (y as f64);
     }
-    let r = (sum / (buf.len() as f64)).sqrt();
+    let r_left = (sum_left / (buf.len() as f64) / 2.0).sqrt();
+    let r_right = (sum_right / (buf.len() as f64) / 2.0).sqrt();
+
     // Convert value to decibels
-    20.0 * (r / (i16::MAX as f64)).log10()
+    (
+        20.0 * (r_left / (i16::MAX as f64)).log10(),
+        20.0 * (r_right / (i16::MAX as f64)).log10(),
+    )
 }
 
 fn read_loop(
@@ -80,12 +89,14 @@ fn read_loop(
 ) -> Result<(), Error> {
     let io = pcm.io_i16()?;
     let mut buf = [0i16; 8192];
+    let hwp = HwParams::any(&pcm)?;
+    let channels = hwp.get_channels()?;
     loop {
         // Block while waiting for 8192 samples to be read from the device.
         assert_eq!(io.readi(&mut buf)?, buf.len());
-        let r = rms(&buf);
+        let (r_left, r_right) = rms(&buf, channels);
         // Todo put data in Ringbuffer
-        println!("RMS: {:.1} dB", r);
+        println!("RMS: {:.1} dB, {:.1} dB", r_left, r_right);
     }
 }
 

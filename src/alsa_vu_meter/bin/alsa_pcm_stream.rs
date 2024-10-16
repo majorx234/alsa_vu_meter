@@ -61,24 +61,24 @@ pub fn get_alsa_cards() -> Vec<Vec<CardStuff>> {
 }
 
 // Calculates RMS (root mean square) as a way to determine volume
-fn rms(buf: &[i16], channels: u32) -> (f64, f64) {
+fn rms(buf: &[i16], channels: u32) -> (f32, f32) {
     assert_eq!(channels, 2);
     if buf.len() == 0 {
-        return (0f64, 0f64);
+        return (0f32, 0f32);
     }
-    let mut sum_left = 0f64;
-    let mut sum_right = 0f64;
+    let mut sum_left = 0f32;
+    let mut sum_right = 0f32;
     for (&x, &y) in buf.iter().tuples() {
-        sum_left += (x as f64) * (x as f64);
-        sum_right += (y as f64) * (y as f64);
+        sum_left += (x as f32) * (x as f32);
+        sum_right += (y as f32) * (y as f32);
     }
-    let r_left = (sum_left / (buf.len() as f64) / 2.0).sqrt();
-    let r_right = (sum_right / (buf.len() as f64) / 2.0).sqrt();
+    let rms_left = (sum_left / (buf.len() as f32) / 2.0).sqrt();
+    let rms_right = (sum_right / (buf.len() as f32) / 2.0).sqrt();
 
     // Convert value to decibels
     (
-        20.0 * (r_left / (i16::MAX as f64)).log10(),
-        20.0 * (r_right / (i16::MAX as f64)).log10(),
+        20.0 * (rms_left / (i16::MAX as f32)).log10(),
+        20.0 * (rms_right / (i16::MAX as f32)).log10(),
     )
 }
 
@@ -94,9 +94,11 @@ fn read_loop(
     loop {
         // Block while waiting for 8192 samples to be read from the device.
         assert_eq!(io.readi(&mut buf)?, buf.len());
-        let (r_left, r_right) = rms(&buf, channels);
+        let (rms_left, rms_right) = rms(&buf, channels);
         // Todo put data in Ringbuffer
-        println!("RMS: {:.1} dB, {:.1} dB", r_left, r_right);
+        println!("RMS: {:.1} dB, {:.1} dB", rms_left, rms_right);
+        let _ = ringbuffer_left_in.push(rms_left);
+        let _ = ringbuffer_right_in.push(rms_right);
     }
 }
 

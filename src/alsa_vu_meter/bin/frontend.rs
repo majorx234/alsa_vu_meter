@@ -18,7 +18,6 @@ use std::{
     io::{self, stdout, Stdout},
     iter::Product,
     mem::MaybeUninit,
-    sync::Arc,
     thread,
     time::Duration,
 };
@@ -53,16 +52,25 @@ pub fn create_gui_thread(
 
 pub fn run(
     mut terminal: Terminal<impl Backend>,
-    ringbuffer_left_in: ConsumerRbf32,
-    ringbuffer_right_in: ConsumerRbf32,
+    mut ringbuffer_left_in: ConsumerRbf32,
+    mut ringbuffer_right_in: ConsumerRbf32,
 ) -> Result<()> {
     let titles = ["card0", "card1"];
     let number_of_devices = 2;
-    let number_of_channels: usize = 10;
-    let channel_values: Vec<f64> = vec![
-        0.1, 0.15, 0.2, 0.225, 0.25, 0.275, 0.3, 0.3125, 0.325, 0.3375,
-    ];
+    let number_of_channels: usize = 2;
     loop {
+        let left_value = if let Some(left_value) = ringbuffer_left_in.pop() {
+            left_value
+        } else {
+            0.0
+        };
+        let right_value = if let Some(right_value) = ringbuffer_right_in.pop() {
+            right_value
+        } else {
+            0.0
+        };
+        let channel_values = vec![left_value, right_value];
+
         terminal.draw(|frame| {
             let mut used_y: u16 = 0;
             for i in 0..number_of_devices {

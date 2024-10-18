@@ -18,6 +18,7 @@ use std::{
     io::{self, stdout, Stdout},
     iter::Product,
     mem::MaybeUninit,
+    sync::Arc,
     thread,
     time::Duration,
 };
@@ -58,19 +59,20 @@ pub fn run(
     let titles = ["card0", "card1"];
     let number_of_devices = 2;
     let number_of_channels: usize = 2;
+    let mut channel_values_last = vec![0.0f32, 0.0f32];
     loop {
         let left_value = if let Some(left_value) = ringbuffer_left_in.pop() {
             left_value
         } else {
-            0.0
+            channel_values_last[0]
         };
         let right_value = if let Some(right_value) = ringbuffer_right_in.pop() {
             right_value
         } else {
-            0.0
+            channel_values_last[1]
         };
-        let channel_values = vec![left_value, right_value];
-
+        let channel_values: Vec<f32> = vec![left_value, right_value];
+        channel_values_last = channel_values.clone();
         terminal.draw(|frame| {
             let mut used_y: u16 = 0;
             for i in 0..number_of_devices {

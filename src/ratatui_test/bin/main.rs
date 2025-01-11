@@ -1,8 +1,3 @@
-use std::{
-    env::args,
-    io::{self, stdout, Stdout},
-};
-
 use color_eyre::Result;
 use crossterm::{
     event::{self, Event, KeyCode, KeyEventKind},
@@ -17,13 +12,37 @@ use ratatui::{
     widgets::{Bar, BarChart, BarGroup, Block},
     Viewport,
 };
+use ringbuf::{Consumer, HeapRb, SharedRb};
+use std::time::Duration;
+use std::{
+    env::args,
+    io::{self, stdout, Stdout},
+    mem::MaybeUninit,
+    sync::Arc,
+    thread,
+};
 
 fn main() -> Result<()> {
     // TODO retrive real infos from ALSA
+    let rb = HeapRb::<(f32, f32, f32, f32)>::new(10);
+    let (mut prod, mut cons) = rb.split();
+    std::thread::spawn(move || {
+        let mut counter: f32 = 0.0;
+        while counter < 50.0 {
+            let l1 = (counter + 0.5f32 * std::f32::consts::PI).sin();
+            let r1 = (counter + 1.0f32 * std::f32::consts::PI).sin();
+            let l2 = (counter + 1.5f32 * std::f32::consts::PI).sin();
+            let r2 = (counter + 0.5f32 * std::f32::consts::PI).sin();
+            prod.push((l1, r1, l2, r2)).unwrap();
+            thread::sleep(Duration::from_millis(500));
+            counter += 0.2;
+        }
+    });
+
     initialize_panic_handler();
     color_eyre::install()?;
     let terminal = init_tui()?;
-    let app_result = run(terminal);
+    let app_result = run(terminal, &mut cons);
     restore_tui()?;
     Ok(())
 }
@@ -40,7 +59,13 @@ pub fn restore_tui() -> io::Result<()> {
     Ok(())
 }
 
-fn run(mut terminal: Terminal<impl Backend>) -> Result<()> {
+fn run(
+    mut terminal: Terminal<impl Backend>,
+    rb_cons: &mut Consumer<
+        (f32, f32, f32, f32),
+        Arc<SharedRb<(f32, f32, f32, f32), Vec<MaybeUninit<(f32, f32, f32, f32)>>>>,
+    >,
+) -> Result<()> {
     let titles = ["card0", "card1"];
     let number_of_devices = 2;
     let number_of_channels: usize = 10;

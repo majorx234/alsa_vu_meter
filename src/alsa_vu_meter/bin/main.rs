@@ -1,6 +1,6 @@
 use frontend::ConsumerRbf32;
 use frontend::ProducerRbf32;
-use ringbuf::HeapRb;
+use ringbuf::{traits::Split, HeapRb};
 use std::io::Error;
 use std::thread::sleep;
 use std::time::Duration;

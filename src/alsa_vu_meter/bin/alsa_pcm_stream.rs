@@ -8,6 +8,7 @@ use itertools::Itertools;
 use std::os::raw::c_int;
 
 use crate::frontend::ProducerRbf32;
+use ringbuf::traits::Producer;
 
 struct CardStuff {
     ctl_id_str: String,
@@ -97,8 +98,8 @@ fn read_loop(
         let (rms_left, rms_right) = rms(&buf, channels);
         // Todo put data in Ringbuffer
         println!("RMS: {:.1} dB, {:.1} dB", rms_left, rms_right);
-        let _ = ringbuffer_left_in.push(rms_left);
-        let _ = ringbuffer_right_in.push(rms_right);
+        let _ = ringbuffer_left_in.try_push(rms_left);
+        let _ = ringbuffer_right_in.try_push(rms_right);
     }
 }
 

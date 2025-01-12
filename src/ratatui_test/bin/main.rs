@@ -12,7 +12,7 @@ use ratatui::{
     widgets::{Bar, BarChart, BarGroup, Block},
     Viewport,
 };
-use ringbuf::{Consumer, HeapRb, SharedRb};
+use ringbuf::{traits::*, HeapCons, HeapRb};
 use std::time::Duration;
 use std::{
     env::args,
@@ -33,7 +33,7 @@ fn main() -> Result<()> {
             let r1 = (counter + 1.0f32 * std::f32::consts::PI).sin();
             let l2 = (counter + 1.5f32 * std::f32::consts::PI).sin();
             let r2 = (counter + 0.5f32 * std::f32::consts::PI).sin();
-            prod.push((l1, r1, l2, r2)).unwrap();
+            let _ = prod.try_push((l1, r1, l2, r2)).unwrap();
             thread::sleep(Duration::from_millis(500));
             counter += 0.2;
         }
@@ -61,18 +61,16 @@ pub fn restore_tui() -> io::Result<()> {
 
 fn run(
     mut terminal: Terminal<impl Backend>,
-    rb_cons: &mut Consumer<
-        (f32, f32, f32, f32),
-        Arc<SharedRb<(f32, f32, f32, f32), Vec<MaybeUninit<(f32, f32, f32, f32)>>>>,
-    >,
+    rb_cons: &mut HeapCons<(f32, f32, f32, f32)>,
 ) -> Result<()> {
     let titles = ["card0", "card1"];
     let number_of_devices = 2;
     let number_of_channels: usize = 10;
-    let channel_values: Vec<f64> = vec![
-        0.1, 0.15, 0.2, 0.225, 0.25, 0.275, 0.3, 0.3125, 0.325, 0.3375,
-    ];
+    let mut channel_values: Vec<f64> = vec![0.1, 0.15, 0.2, 0.225];
     loop {
+        //if let Some((l1, r1, l2, r2)) = rb_cons.try_pop() {
+        //    channel_values = vec![l1 as f64, r1 as f64, l2 as f64, r2 as f64];
+        //}
         terminal.draw(|frame| {
             let mut used_y: u16 = 0;
             for i in 0..number_of_devices {

@@ -23,5 +23,5 @@ color-eyre = "0.6.3"
 rand = "0.8.5"
 crossterm = "0.28.1"
 better-panic = "0.3.0"
-ringbuf = {version = "0.3.1"}
+ringbuf = {version = "0.4.7"}
 itertools = {version = "0.13.0"}

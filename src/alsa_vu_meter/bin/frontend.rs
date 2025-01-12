@@ -1,25 +1,20 @@
 use color_eyre::Result;
 use crossterm::{
-    event::{self, Event, KeyCode, KeyEventKind},
+    event::{self, KeyCode, KeyEventKind},
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
     ExecutableCommand,
 };
 use ratatui::{
     self,
-    layout::{Constraint, Direction, Layout, Rect},
-    prelude::{Backend, CrosstermBackend, Stylize, Terminal, TerminalOptions},
+    layout::{Direction, Rect},
+    prelude::{Backend, CrosstermBackend, Terminal},
     text::Line,
     widgets::{Bar, BarChart, BarGroup, Block},
-    Viewport,
 };
-use ringbuf::{Consumer, Producer, SharedRb};
+use ringbuf::{traits::*, HeapCons, HeapProd};
 use std::{
     env::args,
     io::{self, stdout, Stdout},
-    iter::Product,
-    mem::MaybeUninit,
-    sync::Arc,
-    thread,
     time::Duration,
 };
 
@@ -35,8 +30,8 @@ pub fn restore_tui() -> io::Result<()> {
     Ok(())
 }
 
-pub type ConsumerRbf32 = Consumer<f32, Arc<SharedRb<f32, std::vec::Vec<MaybeUninit<f32>>>>>;
-pub type ProducerRbf32 = Producer<f32, Arc<SharedRb<f32, std::vec::Vec<MaybeUninit<f32>>>>>;
+pub type ConsumerRbf32 = HeapCons<f32>;
+pub type ProducerRbf32 = HeapProd<f32>;
 
 pub fn create_gui_thread(
     ringbuffer_left_in: ConsumerRbf32,
@@ -46,7 +41,7 @@ pub fn create_gui_thread(
         initialize_panic_handler();
         color_eyre::install().unwrap();
         let terminal = init_tui().unwrap();
-        let app_result = run(terminal, ringbuffer_left_in, ringbuffer_right_in).unwrap();
+        let _app_result = run(terminal, ringbuffer_left_in, ringbuffer_right_in).unwrap();
         restore_tui().unwrap();
     })
 }
@@ -61,12 +56,12 @@ pub fn run(
     let number_of_channels: usize = 2;
     let mut channel_values_last = vec![0.0f32, 0.0f32];
     loop {
-        let left_value = if let Some(left_value) = ringbuffer_left_in.pop() {
+        let left_value = if let Some(left_value) = ringbuffer_left_in.try_pop() {
             left_value
         } else {
             channel_values_last[0]
         };
-        let right_value = if let Some(right_value) = ringbuffer_right_in.pop() {
+        let right_value = if let Some(right_value) = ringbuffer_right_in.try_pop() {
             right_value
         } else {
             channel_values_last[1]

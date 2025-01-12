@@ -1,24 +1,21 @@
 use color_eyre::Result;
 use crossterm::{
-    event::{self, Event, KeyCode, KeyEventKind},
+    event::{self, KeyCode, KeyEventKind},
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
     ExecutableCommand,
 };
 use ratatui::{
     self,
-    layout::{Constraint, Direction, Layout, Rect},
-    prelude::{Backend, CrosstermBackend, Stylize, Terminal, TerminalOptions},
+    layout::{Direction, Rect},
+    prelude::{Backend, CrosstermBackend, Terminal},
     text::Line,
     widgets::{Bar, BarChart, BarGroup, Block},
-    Viewport,
 };
 use ringbuf::{traits::*, HeapCons, HeapRb};
 use std::time::Duration;
 use std::{
     env::args,
     io::{self, stdout, Stdout},
-    mem::MaybeUninit,
-    sync::Arc,
     thread,
 };
 
@@ -29,13 +26,13 @@ fn main() -> Result<()> {
     std::thread::spawn(move || {
         let mut counter: f32 = 0.0;
         while counter < 50.0 {
-            let l1 = (counter + 0.5f32 * std::f32::consts::PI).sin();
-            let r1 = (counter + 1.0f32 * std::f32::consts::PI).sin();
-            let l2 = (counter + 1.5f32 * std::f32::consts::PI).sin();
-            let r2 = (counter + 0.5f32 * std::f32::consts::PI).sin();
+            let l1 = 0.5 * (counter + 0.5f32 * std::f32::consts::PI).sin() + 0.5;
+            let r1 = 0.5 * (counter + 1.0f32 * std::f32::consts::PI).sin() + 0.5;
+            let l2 = 0.5 * (counter + 1.5f32 * std::f32::consts::PI).sin() + 0.5;
+            let r2 = 0.5 * (counter + 0.5f32 * std::f32::consts::PI).sin() + 0.5;
             let _ = prod.try_push((l1, r1, l2, r2)).unwrap();
-            thread::sleep(Duration::from_millis(500));
-            counter += 0.2;
+            thread::sleep(Duration::from_millis(50));
+            counter += 0.03;
         }
     });
 
@@ -63,14 +60,14 @@ fn run(
     mut terminal: Terminal<impl Backend>,
     rb_cons: &mut HeapCons<(f32, f32, f32, f32)>,
 ) -> Result<()> {
-    let titles = ["card0", "card1"];
+    let mut titles = ["card0", "card1"];
     let number_of_devices = 2;
     let number_of_channels: usize = 10;
     let mut channel_values: Vec<f64> = vec![0.1, 0.15, 0.2, 0.225];
     loop {
-        //if let Some((l1, r1, l2, r2)) = rb_cons.try_pop() {
-        //    channel_values = vec![l1 as f64, r1 as f64, l2 as f64, r2 as f64];
-        //}
+        if let Some((l1, r1, l2, r2)) = rb_cons.try_pop() {
+            channel_values = vec![1.0, l1 as f64, r1 as f64, l2 as f64, r2 as f64, 0.0f64];
+        }
         terminal.draw(|frame| {
             let mut used_y: u16 = 0;
             for i in 0..number_of_devices {
@@ -86,11 +83,11 @@ fn run(
                     .enumerate()
                     .map(|(index, value)| {
                         Bar::default()
-                            .value(((100.0 * *value) as i32).try_into().unwrap())
+                            .value(((100.0 * *value).min(100.0) as i32).try_into().unwrap())
                             .label(Line::from(format!("{index}")))
                     })
                     .collect();
-                let title = titles[i];
+                let title = &titles[i];
                 let barchart = BarChart::default()
                     .data(BarGroup::default().bars(&bars))
                     .block(Block::new().title(format!("{title}")))

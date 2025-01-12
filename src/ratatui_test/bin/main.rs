@@ -14,8 +14,7 @@ use ratatui::{
 use ringbuf::{traits::*, HeapCons, HeapRb};
 use std::time::Duration;
 use std::{
-    env::args,
-    io::{self, stdout, Stdout},
+    io::{self, stdout},
     thread,
 };
 
@@ -39,7 +38,7 @@ fn main() -> Result<()> {
     initialize_panic_handler();
     color_eyre::install()?;
     let terminal = init_tui()?;
-    let app_result = run(terminal, &mut cons);
+    let _app_result = run(terminal, &mut cons);
     restore_tui()?;
     Ok(())
 }

@@ -12,11 +12,7 @@ use ratatui::{
     widgets::{Bar, BarChart, BarGroup, Block},
 };
 use ringbuf::{traits::*, HeapCons, HeapProd};
-use std::{
-    env::args,
-    io::{self, stdout, Stdout},
-    time::Duration,
-};
+use std::io::{self, stdout};
 
 pub fn init_tui() -> io::Result<Terminal<impl Backend>> {
     stdout().execute(EnterAlternateScreen)?;

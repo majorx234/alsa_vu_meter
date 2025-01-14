@@ -8,6 +8,7 @@ use ratatui::{
     self,
     layout::{Direction, Rect},
     prelude::{Backend, CrosstermBackend, Terminal},
+    style::{Color, Style, Stylize},
     text::Line,
     widgets::{Bar, BarChart, BarGroup, Block},
 };
@@ -65,7 +66,7 @@ fn run(
     let mut channel_values: Vec<f64> = vec![0.1, 0.15, 0.2, 0.225];
     loop {
         if let Some((l1, r1, l2, r2)) = rb_cons.try_pop() {
-            channel_values = vec![1.0, l1 as f64, r1 as f64, l2 as f64, r2 as f64, 0.0f64];
+            channel_values = vec![l1 as f64, r1 as f64, l2 as f64, r2 as f64, 0.0f64];
         }
         terminal.draw(|frame| {
             let mut used_y: u16 = 0;
@@ -84,6 +85,9 @@ fn run(
                         Bar::default()
                             .value(((100.0 * *value).min(100.0) as i32).try_into().unwrap())
                             .label(Line::from(format!("{index}")))
+                            .style(Style::default().fg(Color::Red))
+                            .value_style(Style::default().bg(Color::Red).fg(Color::White))
+                            .text_value(format!("{index}: {value}"))
                     })
                     .collect();
                 let title = &titles[i];
@@ -92,6 +96,8 @@ fn run(
                     .block(Block::new().title(format!("{title}")))
                     .bar_width(1)
                     .bar_gap(0)
+                    .label_style(Style::new().red().on_white())
+                    .max(100)
                     .direction(Direction::Horizontal);
                 frame.render_widget(barchart, area);
             }

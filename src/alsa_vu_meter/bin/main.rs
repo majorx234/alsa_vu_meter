@@ -6,8 +6,20 @@ mod frontend;
 use crate::frontend::create_gui_thread;
 mod alsa_pcm_stream;
 use alsa_pcm_stream::create_capture_thread;
+use clap::Parser;
+
+/// Simple program to greet a person
+#[derive(Parser, Debug)]
+#[command(version, about, long_about = None)]
+struct Args {
+    /// audio device name
+    #[arg(short, long)]
+    device: String,
+}
 
 fn main() -> Result<(), Error> {
+    let args = Args::parse();
+    println!("device: {}", args.device);
     let ringbuffer_left = HeapRb::<f32>::new(96000);
     let ringbuffer_right = HeapRb::<f32>::new(96000);
 

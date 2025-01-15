@@ -5,7 +5,7 @@ use std::time::Duration;
 mod frontend;
 use crate::frontend::create_gui_thread;
 mod alsa_pcm_stream;
-use alsa_pcm_stream::create_capture_thread;
+use alsa_pcm_stream::{create_capture_thread, get_alsa_cards};
 use clap::Parser;
 
 /// Simple program to greet a person
@@ -14,12 +14,22 @@ use clap::Parser;
 struct Args {
     /// audio device name
     #[arg(short, long)]
-    device: String,
+    device: Option<String>,
 }
 
 fn main() -> Result<(), Error> {
     let args = Args::parse();
-    println!("device: {}", args.device);
+    let device = if let Some(device) = args.device {
+        device
+    } else {
+        let card_stuffs = get_alsa_cards();
+        for cards in card_stuffs {
+            for card in cards {
+                card.print();
+            }
+        }
+        return Ok(());
+    };
     let ringbuffer_left = HeapRb::<f32>::new(96000);
     let ringbuffer_right = HeapRb::<f32>::new(96000);
 

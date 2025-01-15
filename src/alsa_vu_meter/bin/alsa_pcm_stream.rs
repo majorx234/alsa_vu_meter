@@ -10,12 +10,19 @@ use std::os::raw::c_int;
 use crate::frontend::ProducerRbf32;
 use ringbuf::traits::Producer;
 
-struct CardStuff {
+#[derive(Debug)]
+pub struct CardStuff {
     ctl_id_str: String,
     ctl_id: c_int,
     device: i32,
     card_id: String,
     card_name: String,
+}
+
+impl CardStuff {
+    pub fn print(&self) {
+        println!("{:?}", self);
+    }
 }
 
 fn card_info(card: &Card) -> Result<Vec<CardStuff>, Error> {

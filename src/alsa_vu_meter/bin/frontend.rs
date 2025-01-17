@@ -81,6 +81,9 @@ pub fn run(
                         Bar::default()
                             .value(((100.0 * *value) as i32).try_into().unwrap())
                             .label(Line::from(format!("{index}")))
+                            .style(Style::default().fg(Color::Red))
+                            .value_style(Style::default().bg(Color::Red).fg(Color::White))
+                            .text_value(format!("{index}: {value}"))
                     })
                     .collect();
                 let title = titles[i];
@@ -89,6 +92,8 @@ pub fn run(
                     .block(Block::new().title(format!("{title}")))
                     .bar_width(1)
                     .bar_gap(0)
+                    .label_style(Style::new().red().on_white())
+                    .max(100)
                     .direction(Direction::Horizontal);
                 frame.render_widget(barchart, area);
             }

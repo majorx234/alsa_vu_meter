@@ -7,7 +7,7 @@ use crossterm::{
 use ratatui::{
     self,
     layout::{Direction, Rect},
-    prelude::{Backend, CrosstermBackend, Terminal},
+    prelude::{Backend, Color, CrosstermBackend, Style, style::Stylize, Terminal},
     text::Line,
     widgets::{Bar, BarChart, BarGroup, Block},
 };

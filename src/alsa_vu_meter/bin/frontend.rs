@@ -7,7 +7,7 @@ use crossterm::{
 use ratatui::{
     self,
     layout::{Direction, Rect},
-    prelude::{Backend, Color, CrosstermBackend, Style, style::Stylize, Terminal},
+    prelude::{style::Stylize, Backend, Color, CrosstermBackend, Style, Terminal},
     text::Line,
     widgets::{Bar, BarChart, BarGroup, Block},
 };
@@ -32,12 +32,13 @@ pub type ProducerRbf32 = HeapProd<f32>;
 pub fn create_gui_thread(
     ringbuffer_left_in: ConsumerRbf32,
     ringbuffer_right_in: ConsumerRbf32,
+    devices: Vec<String>,
 ) -> std::thread::JoinHandle<()> {
     std::thread::spawn(move || {
         initialize_panic_handler();
         color_eyre::install().unwrap();
         let terminal = init_tui().unwrap();
-        let _app_result = run(terminal, ringbuffer_left_in, ringbuffer_right_in).unwrap();
+        let _app_result = run(terminal, ringbuffer_left_in, ringbuffer_right_in, devices).unwrap();
         restore_tui().unwrap();
     })
 }
@@ -46,9 +47,10 @@ pub fn run(
     mut terminal: Terminal<impl Backend>,
     mut ringbuffer_left_in: ConsumerRbf32,
     mut ringbuffer_right_in: ConsumerRbf32,
+    devices: Vec<String>,
 ) -> Result<()> {
     let titles = ["card0", "card1"];
-    let number_of_devices = 2;
+    let number_of_devices = devices.len();
     let number_of_channels: usize = 2;
     let mut channel_values_last = vec![0.0f32, 0.0f32];
     loop {
@@ -86,10 +88,9 @@ pub fn run(
                             .text_value(format!("{index}: {value}"))
                     })
                     .collect();
-                let title = titles[i];
                 let barchart = BarChart::default()
                     .data(BarGroup::default().bars(&bars))
-                    .block(Block::new().title(format!("{title}")))
+                    .block(Block::new().title(devices[i].to_string()))
                     .bar_width(1)
                     .bar_gap(0)
                     .label_style(Style::new().red().on_white())
